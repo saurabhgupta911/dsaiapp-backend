@@ -4,22 +4,23 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import re
 from datetime import datetime
-
+import os
+import json
 # ---------------------------
 # Initialize Flask app & Firebase
 # ---------------------------
 app = Flask(__name__)
 CORS(app)
 
-# NOTE: Make sure "serviceAccountKey.json" is in the same directory
-cred = credentials.Certificate("serviceAccountKey.json")
+cred_json_str = os.environ.get('FIREBASE_CREDENTIALS_JSON')
+cred_dict = json.loads(cred_json_str)
+cred = credentials.Certificate(cred_dict)
+
 try:
     firebase_admin.get_app()
 except ValueError:
     firebase_admin.initialize_app(cred)
 db = firestore.client()
-
-
 # ==================================================
 # All Handler Functions (Logic)
 # These are the core logic functions for each topic.
