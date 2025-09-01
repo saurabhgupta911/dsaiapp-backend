@@ -6,9 +6,8 @@ import re
 from datetime import datetime
 import os
 import json
-# ---------------------------
+
 # Initialize Flask app & Firebase
-# ---------------------------
 app = Flask(__name__)
 CORS(app)
 
@@ -21,11 +20,8 @@ try:
 except ValueError:
     firebase_admin.initialize_app(cred)
 db = firestore.client()
-# ==================================================
-# All Handler Functions (Logic)
-# These are the core logic functions for each topic.
-# ==================================================
 
+# All Handler Functions (Logic)
 # --- Admin Info Logic ---
 LABEL_MAP = {
     "office_hours": "Office Hours",
@@ -431,20 +427,20 @@ def handle_sessions_query(query: str, sessions_data: list):
             if session.get('title') == target_session_title:
                 
 
-                # Check if the user is asking WHO conducted the session
+                
                 speaker = session.get('speaker') or session.get('facilitator', 'N/A')
                 if any(k in query for k in ["who", "conducted by", "speaker", "facilitator"]):
                     return f"The '{session.get('title')}' was conducted by {speaker}."
 
-                # Check if the user is asking WHEN it was held
+               
                 if any(k in query for k in ["when", "date", "time"]):
                     return f"It was held on {session.get('date', 'N/A')} at {session.get('time', 'N/A')}."
 
-                # Check if the user is asking WHERE it was held
+                
                 if any(k in query for k in ["where", "venue"]):
                     return f"It was held in {session.get('venue', 'N/A')}."
 
-                # If no specific question is asked, fall back to the full summary
+                
                 return format_session_details(session)
                 
         return f"I found a match for '{target_session_title}' but couldn't retrieve its details."
@@ -503,10 +499,7 @@ def find_semester_in_query(query, semester_map):
                 return sem_key
     return None
 def get_detail_from_subject(subject_data, detail_keyword):
-    """
-    Extracts a specific detail from subject data in a robust way,
-    handling cases where data might be missing or empty.
-    """
+    
     subject_name = subject_data.get("name", "this subject")
 
     if detail_keyword in ["practical", "practicals"]:
@@ -610,9 +603,7 @@ def format_day_schedule(day: str, schedule: dict) -> str:
     summary += ", ".join(lecture_details) + f" in classroom {schedule.get('classroom') or schedule.get('Classroom', 'N/A')}."
     return summary
 def handle_timetable_query(query: str, timetables_data: list, state: str = None, original_query: str = None):
-    """
-    Finds and formats answers for timetable-related questions, now with day-specific logic.
-    """
+    
     query = query.lower().strip()
 
     if state == "AWAITING_YEAR_CLARIFICATION":
@@ -634,15 +625,13 @@ def handle_timetable_query(query: str, timetables_data: list, state: str = None,
             target_prof = prof
             break
     
-    # This is the main block for handling professor schedules
+   
     if target_prof and target_semester_name:
         target_timetable = next((tt for tt in timetables_data if tt.get('semester_name') == target_semester_name), {})
         
-        # --- NEW LOGIC TO DETECT A SPECIFIC DAY ---
         days_of_week = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
         target_day = next((day for day in days_of_week if day in query), None)
 
-        # SCENARIO 1: User asked for a specific day's schedule
         if target_day:
             day_schedule = target_timetable.get("schedule", {}).get(target_day.title(), {})
             prof_lectures_on_day = []
@@ -656,7 +645,6 @@ def handle_timetable_query(query: str, timetables_data: list, state: str = None,
             else:
                 return f"No, Prof. {target_prof.title()} has no lectures scheduled on {target_day.title()} for {target_semester_name}."
 
-        # SCENARIO 2: User did not ask for a specific day, so give the full weekly schedule
         else:
             prof_schedule = []
             for day, day_schedule in target_timetable.get("schedule", {}).items():
@@ -670,7 +658,6 @@ def handle_timetable_query(query: str, timetables_data: list, state: str = None,
             else:
                 return f"Prof. {target_prof.title()} has no lectures for {target_semester_name}."
 
-    # This part handles requests for a full year's schedule without a professor name
     if target_semester_name:
         target_timetable = next((tt for tt in timetables_data if tt.get('semester_name') == target_semester_name), None)
         if not target_timetable: return f"I'm sorry, I couldn't find timetable data for {target_semester_name}."
@@ -690,7 +677,6 @@ def handle_timetable_query(query: str, timetables_data: list, state: str = None,
             full_summary += format_day_schedule(day, day_schedule) + " "
         return full_summary.strip()
         
-    # This handles conversational state if not enough info was provided initially
     return {
         "answer": "I can help with the timetable. Please specify a year or a professor's name.",
         "new_state": "AWAITING_YEAR_CLARIFICATION",
@@ -704,16 +690,16 @@ SUBJECT_MAP = {
     "adbms": "advanced database management system", "ds": "data science", "dsa": "data structures",
     "bi": "business intelligence", "fuzzy": "fuzzy logic", "intro_fuzzy": "introduction to fuzzy logic",
     "cloud": "cloud computing", "intro_cloud": "introduction to cloud computing",
-    "maths": "mathematics for data science", "vedic maths": "vedic mathematics", # Corrected key
+    "maths": "mathematics for data science", "vedic maths": "vedic mathematics",
     "data mining": "Data Mining"
 }
 
 def normalize_text(text: str) -> str:
-    """Lowercase and strip extra spaces for consistent matching."""
+    
     return text.lower().strip()
 
 def detect_subjects(query: str, faculty_data: list) -> list:
-    """Detects subjects mentioned in the user query, ensuring no duplicates."""
+    
     query = normalize_text(query)
     detected_subjects = set()
     for key, full_name in SUBJECT_MAP.items():
@@ -728,7 +714,7 @@ def detect_subjects(query: str, faculty_data: list) -> list:
     return list(detected_subjects)
 
 def handle_faculty(query: str):
-    """Handles all faculty-related questions with robust logic."""
+    
     query = (query or "").lower().strip()
     YEAR_MAP = {
         "fy": "FY", "first year": "FY", "1st year": "FY", "1st": "FY",
@@ -805,7 +791,6 @@ def handle_faculty(query: str):
                     return f"The HOD of DSAI is {d.get('name')}."
         return "The HOD of DSAI is Sujata Kotian."
         
-    # Logic for finding a professor by name
     for canonical_name in set(FACULTY_MAP.values()):
         if canonical_name and canonical_name in query:
             data = find_doc_by_name(canonical_name)
@@ -820,9 +805,6 @@ def handle_faculty(query: str):
                 else:
                     return build_faculty_answer(data)
 
-    
-    
-     # Logic for finding a professor by subject
     if detected_subjects:
         matches = []
         for faculty in faculty_data:
@@ -840,7 +822,6 @@ def handle_faculty(query: str):
         if matches:
             return " ".join(matches)
 
-    # Fallback messages
     if detected_subjects:
         return f"No faculty found teaching {', '.join(detected_subjects).upper()}."
     if year_found:
@@ -848,9 +829,6 @@ def handle_faculty(query: str):
 
     return "Sorry, I couldn't find any matching faculty information."
     
-    
-    
-
 # ==================================================
 # Smart Chat Endpoint with Intent Detection
 # ==================================================
@@ -874,7 +852,6 @@ def chat():
             return jsonify(response_data)
         return jsonify({"answer": response_data})
 
-    # --- Keyword-based Intent Detection (Corrected Priority) ---
     
     timetable_keywords = ["timetable", "schedule", "lecture", "lectures", "when is my class", "class timing", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
     if any(keyword in question for keyword in timetable_keywords):
@@ -887,7 +864,6 @@ def chat():
             return jsonify(response_data)
         return jsonify({"answer": response_data})
 
-    # PRIORITY: Faculty is checked before Syllabus to handle questions like "subjects of akash sir"
     faculty_keywords = ["faculty", "professor", "teacher", "hod", "sir", "ma'am", "mam", "teaches", "taught by", "sujata", "rahul", "mujtaba", "wasif", "darpana", "akash", "shweta", "deepak"]
     if any(keyword in question for keyword in faculty_keywords):
         answer = handle_faculty(data.get("question"))
@@ -950,6 +926,5 @@ def chat():
     return jsonify({"answer": "I'm sorry, I'm not sure how to answer that. You can ask me about faculty, library books, college timings, events, or the syllabus."})
 
 
-# ==================================================
 if __name__ == "__main__":
     app.run(debug=True)
