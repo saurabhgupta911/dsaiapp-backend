@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timetables</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-page: #1a1a1a;
+            --bg-app-container: #262626;
+            --text-color-primary: #d4d4d4;
+            --bg-header: #3f3f46;
+            --text-color-header: #f5f5f5;
+            --bg-card: #363636;
+            --text-color-heading: #a78bfa; /* Purple accent for headings */
+            --text-color-subtitle: #c4b5fd;
+            --text-color-detail: #a3a3a3;
+            --border-color-divider: #4a4a4a;
+            --loader-color: #a78bfa;
+            --icon-color-header: #f5f5f5;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-page); 
+            color: var(--text-color-primary);
+        } 
+        .app-container {
+            background-color: var(--bg-app-container);
+            color: var(--text-color-primary);
+        }
+        .header-bg {
+            background-color: var(--bg-header);
+            color: var(--text-color-header);
+        }
+        .header-icon {
+            color: var(--icon-color-header);
+        }
+        .timetable-summary {
+            background-color: var(--bg-card);
+            cursor: pointer;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s ease;
+        }
+        .timetable-summary:hover {
+            background-color: #4a4a4a;
+        }
+        .timetable-details {
+            background-color: #202020; /* Slightly darker to create depth */
+            padding: 1rem;
+            border-top: 1px solid var(--border-color-divider);
+        }
+        .loader-spin {
+            border-bottom-color: var(--loader-color);
+        }
+        /* Custom marker for the details summary */
+        summary::marker {
+            color: var(--text-color-heading);
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body class="bg-slate-900">
+    <div class="w-full max-w-lg mx-auto app-container min-h-screen shadow-lg">
+        <header class="header-bg text-white p-4 sticky top-0 z-10 flex items-center shadow-md">
+            <a href="index.html" class="mr-4 p-2 rounded-full hover:bg-white/20">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </a>
+            <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="header-icon"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold">Class Timetables</h1>
+                <p class="text-sm opacity-80">Semester Schedules</p>
+            </div>
+        </header>
+        <div id="loader" class="flex justify-center items-center h-64">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-2 loader-spin"></div>
+        </div>
+        <main id="timetable-container" class="p-4 sm:p-6 space-y-4">
+            </main>
+    </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB8iYFnVqzBJ2uS6j_LQdF101FL_4ofjjo",
+            authDomain: "dsai-app.firebaseapp.com",
+            projectId: "dsai-app",
+            storageBucket: "dsai-app.appspot.com",
+            messagingSenderId: "404556059210",
+            appId: "1:404556059210:web:fd8a486f3a864fb6020cb3",
+            measurementId: "G-7KXG3VB88C"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const timetableContainer = document.getElementById('timetable-container');
+        const loader = document.getElementById('loader');
+
+        const formatDaySchedule = (dayData) => {
+            if (!dayData || !dayData.lectures || dayData.lectures.length === 0 || !dayData.lectures[0]) {
+                return '<p class="text-xs text-slate-400 italic">No lectures scheduled.</p>';
+            }
+            let lecturesHtml = dayData.lectures.map(lecture => `
+                <div class="flex items-start space-x-3">
+                    <div class="text-xs font-bold text-slate-300 w-28">${lecture.time}</div>
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-white">${lecture.subject}</p>
+                        <p class="text-xs text-purple-400">${lecture.professor}</p>
+                    </div>
+                </div>
+            `).join('<hr class="my-2 border-gray-700">');
+            return `<div class="space-y-2">${lecturesHtml}</div>`;
+        };
+
+        const displayTimetables = async () => {
+            try {
+                const q = query(collection(db, "timetables"), orderBy("semester_name"));
+                const querySnapshot = await getDocs(q);
+                
+                if (querySnapshot.empty) {
+                    timetableContainer.innerHTML = '<p class="text-center text-gray-400">No timetables found.</p>';
+                    return;
+                }
+
+                querySnapshot.forEach((doc) => {
+                    const timetable = doc.data();
+                    const detailsElement = document.createElement('details');
+                    detailsElement.className = "rounded-lg overflow-hidden";
+
+                    const summaryElement = document.createElement('summary');
+                    summaryElement.className = "timetable-summary text-lg font-bold";
+                    summaryElement.textContent = timetable.semester_name;
+                    
+                    const contentElement = document.createElement('div');
+                    contentElement.className = "timetable-details";
+
+                    const daysOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+                    let daysHtml = '';
+                    for(const day of daysOrder) {
+                        if (timetable.schedule[day]) {
+                            // Extract classroom if available for the entire day or first lecture
+                            // Assuming 'classroom' is a direct property of the dayData object
+                            // Or, if it's per lecture, you can adjust this. For now, assuming per day or top-level.
+                            const classroomInfo = timetable.schedule[day].classroom ? `<span class="text-xs text-slate-400 ml-2">(${timetable.schedule[day].classroom})</span>` : '';
+
+                            daysHtml += `
+                                <div class="mb-4">
+                                    <h4 class="font-semibold text-purple-400">${day} ${classroomInfo}</h4>
+                                    <div class="p-2">
+                                        ${formatDaySchedule(timetable.schedule[day])}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+
+                    contentElement.innerHTML = `<div class="space-y-4">${daysHtml}</div>`;
+                    
+                    detailsElement.appendChild(summaryElement);
+                    detailsElement.appendChild(contentElement);
+                    timetableContainer.appendChild(detailsElement);
+                });
+
+            } catch (error) {
+                console.error("Error fetching timetable data: ", error);
+                timetableContainer.innerHTML = '<p class="text-center text-red-500">Could not load timetable data.</p>';
+            } finally {
+                loader.style.display = 'none';
+            }
+        };
+
+        displayTimetables();
+    </script>
+</body>
+</html>

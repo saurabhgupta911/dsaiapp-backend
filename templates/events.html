@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College Fests & Events</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-page: #1a1a1a; --bg-app-container: #262626; --text-color-primary: #d4d4d4;
+            --bg-header: #3f3f46; --text-color-header: #f5f5f5; --bg-card: #363636;
+            --text-color-heading: #a78bfa; --border-color-divider: #4a4a4a; --loader-color: #a78bfa;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-page); color: var(--text-color-primary); }
+        .app-container { background-color: var(--bg-app-container); }
+        .header-bg { background-color: var(--bg-header); color: var(--text-color-header); }
+        .event-card {
+            background-color: var(--bg-card); border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); cursor: pointer;
+            transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
+        }
+        .event-card:hover { transform: scale(1.03); background-color: #4a4a4a; }
+        .event-title { color: var(--text-color-heading); }
+        .loader-spin { border-bottom-color: var(--loader-color); }
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.85); display: flex;
+            justify-content: center; align-items: center; z-index: 1000;
+            opacity: 0; visibility: hidden; transition: opacity 0.3s ease;
+        }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-content {
+            background-color: var(--bg-app-container); border-radius: 0.75rem;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5); max-width: 90%;
+            width: 500px; max-height: 90vh; display: flex; flex-direction: column;
+            position: relative; border: 1px solid var(--border-color-divider);
+        }
+        .modal-header { border-bottom: 1px solid var(--border-color-divider); }
+        .modal-body { overflow-y: auto; }
+        .modal-body::-webkit-scrollbar { display: none; }
+        .modal-close {
+            position: absolute; top: 0.75rem; right: 0.75rem; background:none;
+            color: #a3a3a3; border: none; font-size: 1.5rem; cursor: pointer;
+        }
+        .modal-close:hover { color: white; }
+    </style>
+</head>
+<body class="bg-slate-900">
+    <div class="w-full max-w-lg mx-auto app-container min-h-screen shadow-lg">
+        <header class="header-bg text-white p-4 sticky top-0 z-10 flex items-center shadow-md">
+            <a href="index.html" class="mr-4 p-2 rounded-full hover:bg-white/20">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </a>
+            <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold">College Fests & Events</h1>
+                <p class="text-sm opacity-80">Latest Updates</p>
+            </div>
+        </header>
+        <div id="loader" class="flex justify-center items-center h-64">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-2 loader-spin"></div>
+        </div>
+        <main id="events-container" class="p-4 sm:p-6 grid grid-cols-1 gap-4">
+            </main>
+    </div>
+
+    <div id="event-detail-overlay" class="modal-overlay" onclick="hideEventDetail()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="hideEventDetail()">&times;</button>
+            <div id="modal-header" class="p-4 modal-header">
+                <h2 id="modal-title" class="text-xl font-bold event-title"></h2>
+                <p id="modal-date" class="text-sm text-slate-400"></p>
+            </div>
+            <div class="modal-body p-4">
+                <p id="modal-summary" class="text-slate-300 mb-4"></p>
+                <div id="modal-schedule" class="space-y-3 mb-4"></div>
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-200 mb-2">Gallery</h3>
+                    <div id="modal-gallery" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // --- APNA FIREBASE CONFIG YAHAN PASTE KAREIN ---
+        // !!! YE NICHE WALE VALUES APNE FIREBASE PROJECT SE REPLACE KARNA ZAROORI HAI !!!
+        const firebaseConfig = {
+            apiKey: "AIzaSyB8iYFnVqzBJ2uS6j_LQdF101FL_4ofjjo", // REPLACE WITH YOUR API KEY
+            authDomain: "dsai-app.firebaseapp.com", // REPLACE WITH YOUR AUTH DOMAIN
+            projectId: "dsai-app", // REPLACE WITH YOUR PROJECT ID
+            storageBucket: "dsai-app.appspot.com", // REPLACE WITH YOUR STORAGE BUCKET
+            messagingSenderId: "404556059210", // REPLACE WITH YOUR SENDER ID
+            appId: "1:404556059210:web:fd8a486f3a864fb6020cb3", // REPLACE WITH YOUR APP ID
+            measurementId: "G-7KXG3VB88C" // REPLACE WITH YOUR MEASUREMENT ID (Optional)
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const eventsContainer = document.getElementById('events-container');
+        const loader = document.getElementById('loader');
+        const eventDetailOverlay = document.getElementById('event-detail-overlay');
+        const modalBody = document.querySelector('.modal-body'); // Modal body ko select kiya, scroll ke liye
+
+        const allEventsData = []; // Saare events ka data yahan store hoga
+
+        // Function to show the detailed modal
+        window.showEventDetail = (index) => {
+            const eventData = allEventsData[index];
+            if (!eventData) return;
+            
+            // Modal ke title, date aur summary ko update kiya
+            document.getElementById('modal-title').textContent = eventData.name;
+            document.getElementById('modal-date').textContent = eventData.date_summary;
+            document.getElementById('modal-summary').textContent = eventData.report_summary || eventData.description || 'No summary available.'; // Fallback agar summary nahi hai
+
+            // Pichle status ko clear kiya, takay naya status hi dikhe
+            const oldStatus = document.querySelector('#modal-header p.text-yellow-400, #modal-header p.text-green-400');
+            if (oldStatus) {
+                oldStatus.remove();
+            }
+
+            // --- Status Display Logic ---
+            const modalHeader = document.getElementById('modal-header');
+            let statusDisplay = '';
+            if (eventData.status && eventData.status.toLowerCase() === 'expected') {
+                statusDisplay = `<p class="text-yellow-400 text-sm mt-1">Status: Expected</p>`;
+            } else if (eventData.status) {
+                statusDisplay = `<p class="text-green-400 text-sm mt-1">Status: ${eventData.status}</p>`; // Agar koi aur status hai
+            }
+            // Status ko date ke theek baad add kiya
+            document.getElementById('modal-date').insertAdjacentHTML('afterend', statusDisplay);
+
+
+            // Schedule ko populate kiya (Ab [object Object] aur Untitled Activity nahi dikhega!)
+            const scheduleContainer = document.getElementById('modal-schedule');
+            scheduleContainer.innerHTML = '<div><h3 class="text-lg font-semibold text-slate-200 mb-2">Schedule</h3></div>';
+            if (eventData.schedule && eventData.schedule.length > 0) {
+                eventData.schedule.forEach(day => {
+                    let activitiesHtml = '';
+                    if (day.activities && Array.isArray(day.activities) && day.activities.length > 0) {
+                        activitiesHtml = `
+                            <ul class="list-disc list-inside ml-4 text-slate-400">
+                                ${day.activities.map(activity => {
+                                    let activityDetails = '';
+                                    if (typeof activity === 'string') { // Agar activity seedha string hai (e.g., 'Inaugural ceremony')
+                                        activityDetails = activity;
+                                    } else if (typeof activity === 'object' && activity !== null) { // Agar activity object hai (e.g., {name: "Debugging", time: "10:00 AM"})
+                                        activityDetails = activity.name || 'Activity Name Missing'; // Default fallback agar 'name' field nahi hai
+                                        if (activity.time) activityDetails += ` (${activity.time})`;
+                                        if (activity.venue) activityDetails += ` at ${activity.venue}`;
+                                    } else { // Kisi aur unexpected type ka data
+                                        activityDetails = 'Unknown Activity Type';
+                                    }
+                                    return `<li>${activityDetails}</li>`;
+                                }).join('')}
+                            </ul>
+                        `;
+                    } else {
+                        activitiesHtml = `<p class="text-slate-500 ml-4">No activities listed for this day.</p>`;
+                    }
+                    scheduleContainer.innerHTML += `
+                        <div class="mb-2">
+                            <strong class="text-slate-300">${day.day || 'Unknown Day'}:</strong>
+                            ${activitiesHtml}
+                        </div>
+                    `;
+                });
+            } else {
+                scheduleContainer.innerHTML += '<p class="text-slate-500">No schedule available.</p>';
+            }
+
+
+            // Gallery ko populate kiya
+            // Populate Gallery (UPDATED SECTION)
+            const galleryContainer = document.getElementById('modal-gallery');
+            galleryContainer.innerHTML = ''; // Pichli images clear ki
+            let validImagesFound = false; // Flag to check if any valid image is found
+
+            if (eventData.photo_gallery && eventData.photo_gallery.length > 0) {
+                eventData.photo_gallery.forEach(url => {
+                    // *** YAHAN CHANGE KIYA HAI ***
+                    // Sirf tabhi image add karo jab URL ek non-empty string ho
+                    if (typeof url === 'string' && url.trim() !== '') {
+                        galleryContainer.innerHTML += `<a href="${url}" target="_blank"><img src="${url}" class="w-full h-24 object-cover rounded-md hover:opacity-80 transition-opacity"></a>`;
+                        validImagesFound = true; // Valid image mil gaya
+                    }
+                });
+            } 
+            
+            // Agar koi bhi valid image nahi mili, toh "No gallery images available" dikhao
+            if (!validImagesFound) {
+                galleryContainer.innerHTML += '<p class="text-slate-500 col-span-full">No gallery images available.</p>';
+            }
+            // --- End of UPDATED SECTION ---
+            
+            // Modal ko visible kiya
+            eventDetailOverlay.classList.add('visible');
+            // Modal khulte hi scroll ko top par set kiya
+            modalBody.scrollTop = 0; 
+        };
+
+        // Function to hide the modal
+        window.hideEventDetail = () => {
+            eventDetailOverlay.classList.remove('visible');
+        };
+
+        // Function to display the list of event cards
+        const displayEventsList = async () => {
+            try {
+                // Events ko name ke hisaab se descending order mein fetch kiya (naya event pehle)
+                const q = query(collection(db, "events"), orderBy("name", "desc"));
+                const querySnapshot = await getDocs(q);
+                
+                let eventIndex = 0;
+                if (querySnapshot.empty) {
+                    eventsContainer.innerHTML = '<p class="text-center text-gray-400">No events found.</p>';
+                } else {
+                    querySnapshot.forEach((doc) => {
+                        const event = doc.data();
+                        allEventsData.push(event); // Data ko modal mein use karne ke liye store kiya
+                        
+                        const card = document.createElement('button');
+                        card.className = "event-card text-left p-4";
+                        // Card par click karne par showEventDetail function call hoga
+                        card.setAttribute('onclick', `showEventDetail(${eventIndex})`);
+                        
+                        card.innerHTML = `
+                            <h3 class="text-lg font-bold event-title">${event.name || 'Untitled Event'}</h3>
+                            <p class="text-sm text-slate-400">${event.date_summary || 'No date available'}</p>
+                        `;
+                        eventsContainer.appendChild(card);
+                        eventIndex++;
+                    });
+                }
+
+            } catch (error) {
+                console.error("Error fetching events data: ", error);
+                eventsContainer.innerHTML = '<p class="text-center text-red-500">Could not load events data.</p>';
+            } finally {
+                loader.style.display = 'none'; // Loader ko hata diya
+            }
+        };
+
+        displayEventsList(); // Page load hote hi events list dikhao
+    </script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Catalogue</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style> 
+        body { font-family: 'Inter', sans-serif; } 
+        main::-webkit-scrollbar { display: none; } /* Scrollbar hide kiye hain main content ke liye */
+
+        /* Naye CSS styles for header structure and search bar positioning */
+        .app-container {
+            /* Basic container styling, agar app-container class use kar rahe ho */
+            background-color: #fff; /* White background for the main content area */
+            min-height: 100vh; /* Full viewport height */
+            box-shadow: 0 4px 6px -1px rgba(16, 16, 16, 0.1);
+        }
+
+        .header-bg {
+            /* Existing header background aur text color */
+            background-color: #05964b; /* from-emerald-500 */
+            background-image: linear-gradient(to right, #161616, #047857); /* to-green-600 */
+            color: #fff;
+            padding: 1rem;
+            position: sticky; /* Header ko sticky banaya */
+            top: 0; /* Top par chipka rahega */
+            z-index: 20; /* Search bar aur content ke upar rahega */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Thoda shadow takay floating dikhe */
+            display: flex; /* Flexbox use kiya content align karne ke liye */
+            align-items: center; /* Vertically align items */
+        }
+
+        .header-title-wrapper {
+            /* Title, Find Books, Edition ko wrap karne ke liye */
+            display: flex;
+            flex-direction: column; /* Text ko vertically stack karne ke liye */
+            flex-grow: 1; /* Available space lene do */
+            min-width: 0; /* Text overflow se bachne ke liye */
+            margin-left: 1rem; /* Back button / icon se gap */
+            max-width: calc(100% - 120px); /* Adjust max-width if needed to prevent clash with code on right */
+        }
+
+        .header-code-wrapper {
+            /* Code: 90913 ko wrap karne ke liye */
+            margin-left: auto; /* Isko right mein push karega */
+            white-space: nowrap; /* Code ko ek hi line mein rakho */
+            text-align: right;
+            padding-left: 0.5rem; /* Left padding takay title se thoda space rahe */
+        }
+
+        .header-title {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 700; /* font-bold */
+            line-height: 1.3; /* Line height adjust kiya */
+            /* Text ellipsis for long titles */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .header-sub-text {
+            font-size: 0.875rem; /* text-sm */
+            opacity: 0.8;
+            line-height: 1.2;
+        }
+
+        .search-container {
+            /* Search bar ke liye styling */
+            padding: 1rem;
+            background-color: #fff; /* White background for search area */
+            position: sticky;
+            top: 80px; /* Header ki height ke baad sticky ho (assuming header height is 80px) */
+            z-index: 15; /* Header se thoda neeche, content se upar */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Shadow for floating effect */
+            backdrop-filter: blur(5px); /* Tailwind's backdrop-blur-sm ka equivalent */
+            background-color: rgba(255, 255, 255, 0.8); /* White with transparency */
+        }
+
+        /* Book card styles - no change needed, just for completeness */
+        .book-card {
+            background-color: #fff;
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+        .book-category {
+            color: #059669; /* text-green-600 */
+        }
+        .book-title {
+            color: #1e293b; /* text-slate-800 */
+        }
+        .book-author {
+            color: #64748b; /* text-slate-500 */
+        }
+        .book-author-name {
+            color: #334155; /* text-slate-700 */
+        }
+        .book-meta {
+            color: #94a3b8; /* text-slate-400 */
+        }
+    </style>
+</head>
+<body class="bg-slate-100">
+
+    <div class="w-full max-w-lg mx-auto app-container">
+        <header class="header-bg">
+            <a href="index.html" class="mr-4 p-2 rounded-full hover:bg-white/20">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </a>
+            <div class="w-10 h-10 bg-white/30 rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+            </div>
+            <div class="header-title-wrapper">
+                <h1 class="header-title">Library Catalogue</h1>
+                <p class="header-sub-text">Find Books</p>
+                </div>
+            <div class="header-code-wrapper">
+                <p id="dynamic-code-display" class="header-sub-text"></p>
+            </div>
+        </header>
+
+        <div class="search-container">
+            <input type="text" id="search-bar" placeholder="Search by title, author, or category..." class="w-full px-4 py-3 bg-slate-100 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500">
+        </div>
+
+        <main id="books-container" class="p-4 sm:p-6 grid grid-cols-1 gap-4">
+            </main>
+    </div>
+
+    <script>
+        // --- POORI BOOK LIST YAHAN STORED HAI ---
+        const allBooks = [
+            {"title": "Principle of Soft Computing", "author": "SIN SIVANANDAM & SIN DEEPA", "edition": "THIRD", "code": "90911", "category": "Artificial Intelligence"},
+            {"title": "Artificial Intelligence: A Modern Approach", "author": "STUART RUSSELL & PETER NORVIG", "edition": "FOURTH", "code": "90912", "category": "Artificial Intelligence"},
+            {"title": "Prolog Programming for Artificial Intelligence", "author": "IVAN BRATKO", "edition": "FOURTH", "code": "90913", "category": "Artificial Intelligence"},
+            {"title": "Fundamental of Data Science", "author": "SAMULE BURNS", "edition": null, "code": "89820", "category": "Data Science"},
+            {"title": "Data Science from Scratch", "author": "JOEL GRUS", "edition": "SECOND", "code": "89821", "category": "Data Science"},
+            {"title": "Python for Data Analysis", "author": "WES MCKINNEY", "edition": "SECOND", "code": "89786", "category": "Data Science"},
+            {"title": "R for Data Science", "author": "HADLEY WICKHAM & GARRETT GROLEMUND", "edition": null, "code": "89822", "category": "Data Science"},
+            {"title": "Essential Math for Data Science", "author": "THOMAS NIELSEN", "edition": null, "code": "89823", "category": "Data Science"},
+            {"title": "Business Analytics", "author": "S. CHRISTIAN ALBRIGHT & WAYNE L. WINSTON", "edition": "SIXTH", "code": "89789", "category": "Data Science"},
+            {"title": "Practical Statistics for Data Science", "author": "PETER BRUCE, ANDREW BRUCE & PETER GEDECK", "edition": "FOURTH", "code": "89782", "category": "Statistics"},
+            {"title": "Statistics for Data Science", "author": "JAMES D MILLER", "edition": "THIRD", "code": "89878", "category": "Statistics"},
+            {"title": "All of Statistics: A Concise Course in Statistical Inference", "author": "Larry Wasserman", "edition": "2004", "code": "ST103", "category": "Statistics"},
+            {"title": "The Elements of Statistical Learning", "author": "TREVOR HASTIE, ROBERT TIBSHIRANI, JEROME FRIEDMAN", "edition": "SECOND", "code": "ST104", "category": "Statistics"},
+            {"title": "Deep Learning", "author": "IAN GOODFELLOW, YOSHUA BENGIO & AARON COURVILLE", "edition": null, "code": "90909", "category": "Machine Learning"},
+            {"title": "Pattern Recognition & Machine Learning", "author": "CHRISTOPHER M. BISHOP", "edition": null, "code": "95672", "category": "Machine Learning"},
+            {"title": "Hands-On Machine Learning with Scikit-Learn & TensorFlow", "author": "AURELIEN GERON", "edition": "SECOND", "code": "ML101", "category": "Machine Learning"},
+            {"title": "Machine Learning: A Probabilistic Perspective", "author": "KEVIN P. MURPHY", "edition": null, "code": "ML102", "category": "Machine Learning"},
+            {"title": "Python Machine Learning", "author": "SEBASTIAN RASCHKA & VAHID MIRJALILI", "edition": "THIRD", "code": "ML103", "category": "Machine Learning"},
+            {"title": "Core Java Volume I", "author": "CAY HORSTMANN", "edition": "ELEVENTH", "code": "PR101", "category": "Programming"},
+            {"title": "Effective Java", "author": "JOSHUA BLOCH", "edition": "THIRD", "code": "PR102", "category": "Programming"},
+            {"title": "Python Crash Course", "author": "ERIC MATTHES", "edition": "SECOND", "code": "PR103", "category": "Programming"},
+            {"title": "Fluent Python", "author": "LUCIANO RAMALHO", "edition": "SECOND", "code": "PR104", "category": "Programming"},
+            {"title": "C++ Primer", "author": "STANLEY LIPPMAN, JOSEÉ LAJOIE, BARBARA MOO", "edition": "FIFTH", "code": "PR105", "category": "Programming"},
+            {"title": "Introduction to Algorithms", "author": "THOMAS H. CORMEN et al.", "edition": "FOURTH", "code": "DSA101", "category": "Data Structures & Algorithms"},
+            {"title": "Algorithms", "author": "ROBERT SEDGEWICK & KEVIN WAYNE", "edition": "FOURTH", "code": "DSA102", "category": "Data Structures & Algorithms"},
+            {"title": "Algorithm Design Manual", "author": "STEVEN SKIENA", "edition": "SECOND", "code": "DSA103", "category": "Data Structures & Algorithms"},
+            {"title": "Computer Networking: A Top-Down Approach", "author": "JAMES KUROSE & KEITH ROSS", "edition": "SEVENTH", "code": "CN101", "category": "Computer Networks & Security"},
+            {"title": "Cryptography & Network Security", "author": "WILLIAM STALLINGS", "edition": "SEVENTH", "code": "CN102", "category": "Computer Networks & Security"},
+            {"title": "Internet of Things: A Hands-On Approach", "author": "ARSHDEEP BAHGA & VIJAY MADISETTI", "edition": null, "code": "CN103", "category": "Computer Networks & Security"},
+            {"title": "Digital Image Processing", "author": "RAFAEL C. GONZALEZ & RICHARD E. WOODS", "edition": "FOURTH", "code": "IP101", "category": "Image Processing"},
+            {"title": "Computer Graphics with OpenGL", "author": "DONALD HEARN & M. PAULINE BAKER", "edition": "FOURTH", "code": "CG101", "category": "Computer Graphics"},
+            {"title": "Database System Concepts", "author": "ABRAHAM SILBERSCHATZ, HENRY KORTH, S. SUDARSHAN", "edition": "SIXTH", "code": "DB101", "category": "Database Systems"},
+            {"title": "Fundamentals of Database Systems", "author": "ELMASRI & NAVATHE", "edition": "SEVENTH", "code": "DB102", "category": "Database Systems"},
+            {"title": "Data Warehousing in the Real World", "author": "SAM ANAHORY & DENNIS MURRAY", "edition": null, "code": "DB103", "category": "Database Systems"},
+            {"title": "Quantitative Aptitude", "author": "R.S. AGGARWAL", "edition": null, "code": "AP101", "category": "Aptitude & Competitive Exams"},
+            {"title": "How to Prepare for Quantitative Aptitude for CAT", "author": "ARUN SHARMA", "edition": null, "code": "AP102", "category": "Aptitude & Competitive Exams"},
+            {"title": "Verbal & Non-Verbal Reasoning", "author": "R.S. AGGARWAL", "edition": null, "code": "AP103", "category": "Aptitude & Competitive Exams"},
+            {"title": "Business Research Methods", "author": "DONALD COOPER & PAMELA SCHINDLER", "edition": "TWELFTH", "code": "BM101", "category": "Business & Management"},
+            {"title": "Organizational Behaviour", "author": "STEPHEN P. ROBBINS & TIMOTHY A. JUDGE", "edition": "SEVENTEENTH", "code": "BM102", "category": "Business & Management"},
+            {"title": "Marketing Management", "author": "PHILIP KOTLER & KEVIN LANE KELLER", "edition": "FIFTEENTH", "code": "BM103", "category": "Business & Management"},
+            {"title": "Human Resource Management", "author": "GARY DESSLER", "edition": "FIFTEENTH", "code": "BM104", "category": "Business & Management"},
+            {"title": "Operations Management", "author": "JAY HEIZER & BARRY RENDER", "edition": "TWELFTH", "code": "BM105", "category": "Business & Management"},
+            {"title": "Data Mining: Concepts & Techniques", "author": "JIAWEI HAN, MICHELINE KAMBER, JIAN PEI", "edition": "THIRD", "code": "DSC101", "category": "Data Science"},
+            {"title": "Big Data: Principles & Best Practices", "author": "PRAMOD ANANTHARAMAN", "edition": null, "code": "DSC102", "category": "Data Science"},
+            {"title": "An Introduction to Statistical Learning", "author": "GARETH JAMES, DANIELA WITTEN, TREVOR HASTIE, ROBERT TIBSHIRANI", "edition": "SECOND", "code": "ST105", "category": "Statistics"},
+            {"title": "Applied Multivariate Statistical Analysis", "author": "RICHARD JOHNSON & DEAN WICHERN", "edition": "SIXTH", "code": "ST106", "category": "Statistics"},
+            {"title": "Time Series Analysis", "author": "ROBERT H. SHUMWAY & DAVID S. STOFFER", "edition": "FOURTH", "code": "ST107", "category": "Statistics"},
+            {"title": "Bayesian Data Analysis", "author": "ANDREW GELMAN et al.", "edition": "THIRD", "code": "ST108", "category": "Statistics"},
+            {"title": "Introduction to Probability", "author": "DIMITRI BERTSIMAS & JOHN TSITSIKLIS", "edition": null, "code": "ST109", "category": "Statistics"},
+            {"title": "Artificial Neural Networks", "author": "BHUVANESWARI PAI", "edition": null, "code": "AI101", "category": "Artificial Intelligence"},
+            {"title": "Reinforcement Learning: An Introduction", "author": "RICHARD S. SUTTON & ANDREW G. BARTO", "edition": "SECOND", "code": "AI102", "category": "Artificial Intelligence"},
+            {"title": "Knowledge Representation & Reasoning", "author": "RONALD B. Brachman & Hector J. Levesque", "edition": null, "code": "AI103", "category": "Artificial Intelligence"},
+            {"title": "Speech & Language Processing", "author": "DAN JURAFSKY & JAMES H. MARTIN", "edition": "THIRD", "code": "AI104", "category": "Artificial Intelligence"},
+            {"title": "AI Superpowers", "author": "KAI-FU LEE", "edition": null, "code": "AI105", "category": "Artificial Intelligence"},
+            {"title": "Cloud Computing: Principles & Paradigms", "author": "RAJKUMAR BUYYA", "edition": null, "code": "CC101", "category": "Computer Networks & Security"},
+            {"title": "Modern Operating Systems", "author": "ANDREW TANENBAUM", "edition": "FOURTH", "code": "OS101", "category": "Computer Networks & Security"},
+            {"title": "Operating System Concepts", "author": "ABRAHAM SILBERSCHATZ, PETER B. GALVIN, GREG GAGNE", "edition": "NINTH", "code": "OS102", "category": "Computer Networks & Security"},
+            {"title": "Compilers: Principles, Techniques, and Tools", "author": "ALFRED V. AHO, MONICA LAM, RAVI SETHI, JEFFREY D. ULLMAN", "edition": "SECOND", "code": "CS101", "category": "Programming"},
+            {"title": "Structure & Interpretation of Computer Programs", "author": "HAROLD ABELSON, GERALD JAY SUSSMMAN", "edition": "SECOND", "code": "CS102", "category": "Programming"},
+            {"title": "Clean Code: A Handbook of Agile Software Craftsmanship", "author": "ROBERT C. MARTIN", "edition": null, "code": "CS103", "category": "Programming"},
+            {"title": "Design Patterns: Elements of Reusable Object-Oriented Software", "author": "ERICH GAMMA et al.", "edition": null, "code": "CS104", "category": "Programming"},
+            {"title": "Refactoring: Improving the Design of Existing Code", "author": "MARTIN FOWLER", "edition": "SECOND", "code": "CS105", "category": "Programming"}
+        ];
+
+        const booksContainer = document.getElementById('books-container');
+        const searchBar = document.getElementById('search-bar');
+        const dynamicCodeDisplay = document.getElementById('dynamic-code-display'); // New element to display code
+
+        const displayBooks = (books) => {
+            booksContainer.innerHTML = ''; // Clear previous results
+            if (books.length === 0) {
+                booksContainer.innerHTML = '<p class="text-center text-slate-500">No books found matching your search.</p>';
+                dynamicCodeDisplay.textContent = ''; // Clear code if no books
+                return;
+            }
+
+            // Display books and update header code if only one book is visible
+            if (books.length === 1) {
+                const book = books[0];
+                dynamicCodeDisplay.textContent = `Code: ${book.code || 'N/A'}`;
+                // Optionally, if you want to also show edition in header when one book is selected
+                // document.querySelector('.header-title-wrapper').innerHTML = `
+                //     <h1 class="header-title">${book.title}</h1>
+                //     <p class="header-sub-text">by ${book.author}</p>
+                //     <p class="header-sub-text">Edition: ${book.edition || 'N/A'}</p>
+                // `;
+                // document.querySelector('.header-title-wrapper h1').style.whiteSpace = 'normal'; // Allow title to wrap
+                // dynamicCodeDisplay.style.display = 'block'; // Make sure code is visible
+            } else {
+                dynamicCodeDisplay.textContent = ''; // Clear code if multiple books or no specific book
+                // Reset header title if it was changed for a single book
+                // document.querySelector('.header-title-wrapper').innerHTML = `
+                //     <h1 class="header-title">Library Catalogue</h1>
+                //     <p class="header-sub-text">Find Books</p>
+                // `;
+            }
+
+            // Render all filtered books
+            books.forEach(book => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-xl shadow-md overflow-hidden book-card"; // Added book-card class
+                card.innerHTML = `
+                    <div class="p-5">
+                        <p class="text-xs font-semibold book-category uppercase">${book.category}</p>
+                        <h3 class="text-md font-bold book-title mt-1">${book.title}</h3>
+                        <p class="text-sm book-author mt-2">by <span class="font-medium book-author-name">${book.author}</span></p>
+                        <div class="text-xs book-meta mt-3 flex justify-between">
+                            <span>Edition: ${book.edition || 'N/A'}</span>
+                            <span>Code: ${book.code || 'N/A'}</span>
+                        </div>
+                    </div>
+                `;
+                booksContainer.appendChild(card);
+            });
+        };
+
+        searchBar.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredBooks = allBooks.filter(book => 
+                book.title.toLowerCase().includes(searchTerm) ||
+                book.author.toLowerCase().includes(searchTerm) ||
+                book.category.toLowerCase().includes(searchTerm) ||
+                book.code.toLowerCase().includes(searchTerm) // Code ko bhi search karega
+            );
+            displayBooks(filteredBooks);
+        });
+
+        // Initially display all books
+        displayBooks(allBooks);
+    </script>
+</body>
+</html>

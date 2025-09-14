@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workshops & Sessions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-page: #1a1a1a;
+            --bg-app-container: #262626;
+            --text-color-primary: #d4d4d4;
+            --bg-header: #3f3f46;
+            --text-color-header: #f5f5f5;
+            --bg-card: #363636;
+            --text-color-heading: #a78bfa;
+            --text-color-subtitle: #c4b5fd;
+            --text-color-detail: #a3a3a3;
+            --border-color-divider: #4a4a4a;
+            --loader-color: #a78bfa;
+            --icon-color-header: #f5f5f5;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-page); 
+            color: var(--text-color-primary);
+        } 
+        .app-container {
+            background-color: var(--bg-app-container);
+            color: var(--text-color-primary);
+        }
+        .header-bg {
+            background-color: var(--bg-header);
+            color: var(--text-color-header);
+        }
+        .session-card {
+            background-color: var(--bg-card);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            transition: transform 0.3s ease-in-out;
+            cursor: pointer; /* Make cards obviously clickable */
+        }
+        .session-card:hover {
+            transform: scale(1.02);
+            background-color: #4a4a4a; /* Slightly lighter on hover */
+        }
+        .session-title {
+            color: var(--text-color-heading);
+        }
+        .session-speaker {
+            color: var(--text-color-subtitle);
+        }
+        .session-detail {
+            color: var(--text-color-detail);
+        }
+        .border-t-dark {
+            border-top: 1px solid var(--border-color-divider);
+        }
+        .loader-spin {
+            border-bottom-color: var(--loader-color);
+        }
+        .header-icon {
+            color: var(--icon-color-header);
+        }
+
+        /* --- Session Detail Modal Styles --- */
+        .session-detail-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8); /* Dark semi-transparent background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Make sure it's on top of everything */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .session-detail-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .session-detail-modal {
+            background-color: var(--bg-app-container); /* Darker background for the modal */
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto; /* Enable scrolling for long content */
+            position: relative;
+            width: 400px; /* Fixed width for better readability on desktop */
+        }
+        .session-detail-close {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1010;
+            transition: background-color 0.2s ease;
+        }
+        .session-detail-close:hover {
+            background-color: rgba(255, 255, 255, 0.4);
+        }
+        .modal-title {
+            color: var(--text-color-heading);
+            margin-bottom: 0.5rem;
+        }
+        .modal-subtitle {
+            color: var(--text-color-subtitle);
+            margin-bottom: 1rem;
+        }
+        .modal-info-label {
+            color: var(--text-color-subtitle);
+            font-weight: 500;
+        }
+        .modal-info-value {
+            color: var(--text-color-primary);
+            margin-bottom: 0.5rem;
+        }
+        .modal-topics-list {
+            list-style: disc;
+            margin-left: 1.5rem;
+            color: var(--text-color-detail);
+        }
+    </style>
+</head>
+<body class="bg-slate-900">
+    <div class="w-full max-w-lg mx-auto app-container min-h-screen shadow-lg">
+        <header class="header-bg text-white p-4 sticky top-0 z-10 flex items-center shadow-md">
+            <a href="index.html" class="mr-4 p-2 rounded-full hover:bg-white/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </a>
+            <div class="w-10 h-10 bg-white/30 rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="header-icon">
+                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+                </svg>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold">Workshops & Sessions</h1>
+                <p class="text-sm opacity-80">Past Events</p>
+            </div>
+        </header>
+
+        <div id="loader" class="flex justify-center items-center h-64">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-2 loader-spin"></div>
+        </div>
+        <main id="sessions-container" class="p-4 sm:p-6 grid grid-cols-1 gap-6">
+        </main>
+    </div>
+
+    <div id="session-detail-overlay" class="session-detail-overlay" onclick="hideSessionDetail()">
+        <div class="session-detail-modal" onclick="event.stopPropagation()">
+            <button class="session-detail-close" onclick="hideSessionDetail()">×</button>
+            <h3 id="modal-session-title" class="text-2xl font-bold modal-title"></h3>
+            <p id="modal-session-speaker" class="text-lg modal-subtitle"></p>
+            <p id="modal-session-organizers" class="text-sm modal-info-value"></p>
+            
+            <div class="mt-4 border-t border-gray-700 pt-4 border-t-dark">
+                <p class="text-base modal-info-value"><span class="modal-info-label">Category:</span> <span id="modal-session-category"></span></p>
+                <p class="text-base modal-info-value"><span class="modal-info-label">Date:</span> <span id="modal-session-date"></span></p>
+                <p class="text-base modal-info-value"><span class="modal-info-label">Time:</span> <span id="modal-session-time"></span></p>
+                <p class="text-base modal-info-value"><span class="modal-info-label">Venue:</span> <span id="modal-session-venue"></span></p>
+                
+                <div id="modal-topics-container" class="mt-4">
+                    <p class="text-base modal-info-label">Topics Covered:</p>
+                    <ul id="modal-session-topics" class="modal-topics-list"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // --- APNA FIREBASE CONFIG YAHAN PASTE KAREIN ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyB8iYFnVqzBJ2uS6j_LQdF101FL_4ofjjo", // REPLACE WITH YOUR API KEY
+            authDomain: "dsai-app.firebaseapp.com", // REPLACE WITH YOUR AUTH DOMAIN
+            projectId: "dsai-app", // REPLACE WITH YOUR PROJECT ID
+            storageBucket: "dsai-app.appspot.com", // REPLACE WITH YOUR STORAGE BUCKET
+            messagingSenderId: "404556059210", // REPLACE WITH YOUR SENDER ID
+            appId: "1:404556059210:web:fd8a486f3a864fb6020cb3", // REPLACE WITH YOUR APP ID
+            measurementId: "G-7KXG3VB88C" // REPLACE WITH YOUR MEASUREMENT ID (Optional)
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const sessionsContainer = document.getElementById('sessions-container');
+        const loader = document.getElementById('loader');
+
+        // Modal elements
+        const sessionDetailOverlay = document.getElementById('session-detail-overlay');
+        const modalSessionTitle = document.getElementById('modal-session-title');
+        const modalSessionSpeaker = document.getElementById('modal-session-speaker');
+        const modalSessionOrganizers = document.getElementById('modal-session-organizers');
+        const modalSessionCategory = document.getElementById('modal-session-category');
+        const modalSessionDate = document.getElementById('modal-session-date');
+        const modalSessionTime = document.getElementById('modal-session-time');
+        const modalSessionVenue = document.getElementById('modal-session-venue');
+        const modalTopicsContainer = document.getElementById('modal-topics-container');
+        const modalSessionTopics = document.getElementById('modal-session-topics');
+
+        // Function to show the detailed modal
+        window.showSessionDetail = (sessionData) => {
+            modalSessionTitle.textContent = sessionData.title || 'No Title';
+            modalSessionSpeaker.textContent = sessionData.speaker || 'Unknown Speaker';
+            // FIXED: Ensure organizers is displayed, even if null/empty
+            modalSessionOrganizers.textContent = sessionData.organizers ? `Organized by: ${sessionData.organizers}` : 'No Organizers specified.';
+            
+            modalSessionCategory.textContent = sessionData.category || 'N/A';
+            modalSessionDate.textContent = sessionData.date || 'N/A';
+            modalSessionTime.textContent = sessionData.time || 'N/A';
+            modalSessionVenue.textContent = sessionData.venue || 'N/A';
+
+            // Handle topics
+            modalSessionTopics.innerHTML = ''; // Clear previous topics
+            if (sessionData.topics_covered && typeof sessionData.topics_covered === 'string' && sessionData.topics_covered.trim() !== '') {
+                const topicsArray = sessionData.topics_covered.split(',').map(topic => topic.trim());
+                topicsArray.forEach(topic => {
+                    const li = document.createElement('li');
+                    li.textContent = topic;
+                    modalSessionTopics.appendChild(li);
+                });
+                modalTopicsContainer.style.display = 'block';
+            } else {
+                modalTopicsContainer.style.display = 'none'; // Hide if no topics
+            }
+
+            sessionDetailOverlay.classList.add('visible');
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+        };
+
+        // Function to hide the detailed modal
+        window.hideSessionDetail = () => {
+            sessionDetailOverlay.classList.remove('visible');
+            document.body.style.overflow = ''; // Restore scrolling
+        };
+
+        const displaySessions = async () => {
+            try {
+                // Order by date descending to show most recent first
+                const q = query(collection(db, "sessions"), orderBy("date", "desc"));
+                const querySnapshot = await getDocs(q);
+                
+                if (querySnapshot.empty) {
+                    sessionsContainer.innerHTML = '<p class="text-center text-gray-400">No sessions found.</p>';
+                    return;
+                }
+
+                querySnapshot.forEach((doc) => {
+                    const session = doc.data();
+                    const card = document.createElement('div');
+                    card.className = "session-card";
+                    
+                    // FIXED: JSON.stringify is now robust. No need for .replace(/'/g, "\\'") unless absolutely necessary.
+                    // The main issue might have been the missing 'organizers' field leading to an invalid JSON.
+                    // We ensure 'organizers' is at least an empty string if not present.
+                    const sessionForClick = { ...session, organizers: session.organizers || '' }; 
+                    card.setAttribute('onclick', `showSessionDetail(${JSON.stringify(sessionForClick)})`);
+
+                    // Display limited information on the card
+                    card.innerHTML = `
+                        <div class="p-6">
+                            <div class="text-lg font-bold session-title">${session.title || 'No Title'}</div>
+                            <p class="text-sm font-medium session-speaker mt-1">${session.speaker || 'Unknown Speaker'}</p>
+                            <p class="text-xs session-detail mt-1">${session.organizers || 'Department of Data Science and AI'}</p> <div class="mt-4 border-t border-gray-700 pt-4 border-t-dark">
+                                <p class="text-sm session-detail"><strong>Category:</strong> ${session.category || 'N/A'}</p>
+                                <p class="text-sm session-detail"><strong>Date:</strong> ${session.date || 'N/A'}</p>
+                                <p class="text-sm session-detail"><strong>Time:</strong> ${session.time || 'N/A'}</p>
+                                <p class="text-sm session-detail"><strong>Venue:</strong> ${session.venue || 'N/A'}</p>
+                            </div>
+                        </div>
+                    `;
+                    sessionsContainer.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error("Error fetching sessions data: ", error);
+                sessionsContainer.innerHTML = '<p class="text-center text-red-500">Could not load sessions data.</p>';
+            } finally {
+                loader.style.display = 'none';
+            }
+        };
+        displaySessions();
+    </script>
+</body>
+</html>

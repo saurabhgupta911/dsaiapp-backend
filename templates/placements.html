@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Placement Information</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-slate-100">
+    <div class="w-full max-w-lg mx-auto bg-white min-h-screen shadow-lg">
+        <header class="bg-gradient-to-r from-green-500 to-teal-500 text-white p-4 sticky top-0 z-10 flex items-center shadow-md">
+            <a href="index.html" class="mr-4 p-2 rounded-full hover:bg-white/20">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </a>
+            <div class="w-10 h-10 bg-white/30 rounded-full flex items-center justify-center">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold">Placement Cell</h1>
+                <p class="text-sm opacity-80">Career Opportunities</p>
+            </div>
+        </header>
+        <div id="loader" class="flex justify-center items-center h-64">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600"></div>
+        </div>
+        <main id="placement-container" class="p-4 sm:p-6 space-y-6">
+            </main>
+    </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyB8iYFnVqzBJ2uS6j_LQdF101FL_4ofjjo",
+            authDomain: "dsai-app.firebaseapp.com",
+            projectId: "dsai-app",
+            storageBucket: "dsai-app.appspot.com",
+            messagingSenderId: "404556059210",
+            appId: "1:404556059210:web:fd8a486f3a864fb6020cb3",
+            measurementId: "G-7KXG3VB88C"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const placementContainer = document.getElementById('placement-container');
+        const loader = document.getElementById('loader');
+
+        const displayPlacements = async () => {
+            try {
+                const querySnapshot = await getDocs(collection(db, "placementInfo"));
+                
+                let statusInfo = {};
+                let processInfo = {};
+
+                querySnapshot.forEach((doc) => {
+                    if (doc.data().status_message) {
+                        statusInfo = doc.data();
+                    }
+                    if (doc.data().steps) {
+                        processInfo = doc.data();
+                    }
+                });
+
+                // Card for Status and Officer
+                const statusCard = document.createElement('div');
+                statusCard.className = "bg-white rounded-xl shadow-md overflow-hidden p-5";
+                statusCard.innerHTML = `
+                    <h3 class="text-lg font-bold text-slate-800">Placement Status</h3>
+                    <p class="text-sm text-slate-600 mt-2">${statusInfo.status_message || 'Not available'}</p>
+                    <div class="mt-4 border-t pt-4">
+                        <h4 class="font-semibold text-slate-700">Placement Officer</h4>
+                        <p class="text-sm text-slate-600 font-medium">${statusInfo.placement_officer.name || 'TBA'}</p>
+                        <p class="text-sm text-blue-600">${statusInfo.placement_officer.email || ''}</p>
+                    </div>
+                `;
+                placementContainer.appendChild(statusCard);
+
+                // Card for Placement Process
+                if (processInfo.steps) {
+                    const processCard = document.createElement('div');
+                    processCard.className = "bg-white rounded-xl shadow-md overflow-hidden p-5";
+                    let stepsHtml = processInfo.steps.map(step => `
+                        <li class="flex items-start space-x-3">
+                            <span class="flex-shrink-0 h-6 w-6 flex items-center justify-center bg-green-500 text-white rounded-full font-bold text-xs">${step.step || step.steps}</span>
+                            <div>
+                                <p class="font-semibold text-slate-800">${step.name}</p>
+                                <p class="text-sm text-slate-600">${step.details}</p>
+                            </div>
+                        </li>
+                    `).join('');
+                    processCard.innerHTML = `
+                        <h3 class="text-lg font-bold text-slate-800">Placement Process</h3>
+                        <ul class="mt-4 space-y-4">${stepsHtml}</ul>
+                    `;
+                    placementContainer.appendChild(processCard);
+                }
+
+            } catch (error) {
+                console.error("Error fetching placement data: ", error);
+                placementContainer.innerHTML = '<p class="text-center text-red-500">Could not load placement data.</p>';
+            } finally {
+                loader.style.display = 'none';
+            }
+        };
+
+        displayPlacements();
+    </script>
+</body>
+</html>
